@@ -1,0 +1,7 @@
+(library 
+ (name epiLib)
+ (wrapped false)
+ (modules ast errors lexer parser yaccParser))
+
+(ocamllex lexer)
+(ocamlyacc yaccParser)
