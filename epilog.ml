@@ -43,7 +43,7 @@ let rec unify (t1 : term) (t2 : term) =
     if f1 = f2 then () else raise Not_unifiable
   | Num n1, Num n2 ->
     if n1 = n2 then () else raise Not_unifiable
-  | _ -> Printf.printf "otherwise\n"; raise Not_unifiable
+  | _ -> raise Not_unifiable
 
 let () = 
   match Sys.argv with
@@ -58,7 +58,7 @@ let () =
         end
       | _ -> failwith "Wrong input"
     with
-    | Not_unifiable -> Printf.printf "Not unifiable"
+    | Not_unifiable -> Printf.printf "Not unifiable\n"
     | Failure s -> Printf.printf "%s" s
     | Errors.Cannot_open_file { fname; message } -> 
       Printf.eprintf "Error: Cannot open file '%s': %s\n" fname message
