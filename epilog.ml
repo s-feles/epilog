@@ -40,7 +40,7 @@ let rec unify (t1 : term) (t2 : term) =
     if view f1 = view f2 && List.length ts1 = List.length ts2 then List.iter2 unify ts1 ts2
     else raise Not_unifiable
   | Atom f1, Atom f2 -> 
-    if f1 = f2 then () else raise Not_unifiable
+    if view f1 = view f2 then () else raise Not_unifiable
   | Num n1, Num n2 ->
     if n1 = n2 then () else raise Not_unifiable
   | _ -> raise Not_unifiable
