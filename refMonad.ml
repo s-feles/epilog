@@ -8,7 +8,8 @@ module RefMonad (Value : sig type t end)  (Key : Map.OrderedType) : sig
   val new_ref : Value.t -> key_ref -> key_ref t
   val get : key_ref -> Value.t t
   val set : key_ref -> Value.t -> unit t
-end = struct
+  val run : 'a t -> 'a
+end with type key_ref = Key.t = struct
   module KeyMap = Map.Make(Key)
 
   type 'a t = Value.t KeyMap.t -> 'a *  Value.t KeyMap.t
@@ -27,4 +28,6 @@ end = struct
   
   let set r v = fun s ->
     ((), KeyMap.add r v s)
+  
+  let run m = fst (m KeyMap.empty)
 end
