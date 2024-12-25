@@ -5,3 +5,6 @@ lib: [
 bin: [
   "_build/install/default/bin/epilog"
 ]
+doc: [
+  "_build/install/default/doc/epilog/README.md"
+]

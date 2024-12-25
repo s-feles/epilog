@@ -1,4 +1,4 @@
 (lang dune 3.14)
 (name epilog)
-(sections (lib .) (bin ../../bin))
-(files (lib (META dune-package)) (bin (epilog)))
+(sections (lib .) (bin ../../bin) (doc ../../doc/epilog))
+(files (lib (META dune-package)) (bin (epilog)) (doc (README.md)))
