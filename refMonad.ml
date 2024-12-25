@@ -6,7 +6,7 @@ module RefMonad (Value : sig type t end)  (Key : Map.OrderedType) : sig
   val bind : 'a t -> ('a -> 'b t) -> 'b t
 
   val new_ref : Value.t -> key_ref -> key_ref t
-  val get : key_ref -> Value.t t
+  val get : key_ref -> Value.t option t
   val set : key_ref -> Value.t -> unit t
   val run : 'a t -> 'a
 end with type key_ref = Key.t = struct
@@ -24,7 +24,7 @@ end with type key_ref = Key.t = struct
     (k, KeyMap.add k v s)
   
   let get r = fun s ->
-    (KeyMap.find r s, s)
+    (KeyMap.find_opt r s, s)
   
   let set r v = fun s ->
     ((), KeyMap.add r v s)

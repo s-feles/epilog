@@ -11,3 +11,5 @@ Implemented a (as it turned out, faulty) version of Robinson's unification algor
 
 ## Day 4
 Came up with and implemented a reference (mutability) monad in the file refMonad.ml. It contains a functor that takes a value type and a Map.OrderedType to return a state monad that supports creating and managing references under a given key. Will explore if and how it helps with unification.
+
+Implemented unification using the monad after its slight modification. There is much room for improvement in terms of shortening paths and in general better management of the substitutions. Perhaps I can now start implementing backtracking functionality. State recovery will probably be a major challenge.
