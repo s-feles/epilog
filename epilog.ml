@@ -54,7 +54,7 @@ let unify t1 t2 =
     | Num n1, Num n2 ->
       if n1 = n2 then return () else raise Not_unifiable
     | _ -> raise Not_unifiable
-  in run (unif t1 t2)
+  in unif t1 t2 |> run |> List.of_seq |> List.hd
 
 let () = 
   match Sys.argv with
