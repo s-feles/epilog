@@ -1,8 +1,6 @@
 open Ast
 open RefMonad
 
-exception Not_unifiable
-
 module M = RefMonad (struct type t = term_data end) (String)
 open M
 let (let*) = bind
@@ -123,7 +121,6 @@ let () =
         |> List.of_seq
       in List.iter (fun c -> show_clause c; print_newline ()) selected
     with
-    | Not_unifiable -> printf "Not unifiable\n"
     | Failure s -> printf "%s" s
     | Errors.Cannot_open_file { fname; message } -> 
       eprintf "Error: Cannot open file '%s': %s\n" fname message
