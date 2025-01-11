@@ -2,31 +2,26 @@
 This somewhat pretentious title expresses a hope that I ultimately manage to turn this project into a working Prolog interpreter. It is part of my functional programming university class.
 
 ## What it does
-~~So far it only reads a file and returns an abstract syntax tree, as long as the file contains a correct Prolog program.~~
-~~Given two terms, Epilog now checks whether they are unifiable. If they are, the program terminates with no output. If not, it says so. ~~
-With new functions implemented, Epilog should now take a Prolog program (not necessarily syntactically correct, but parseable) and essentially print it out twice; this is because the current main portion of the `epilog.ml` file tests the `select_clause` function.
+Reads a Prolog program from a file and opens an interactive environment in which the user can query the program, quite similarly to SWI-Prolog. Uses a backtracking monad with mutable state to perform unification and goal resolution.
+Currently Epilog only supports the most basic Prolog functionality. It does not recognize the unary negation `\+`, the cut `!`, arithmetic operations (including the `is` predicate) or the `[H|T]` list syntax, to be implemented soon.
 
 ## How do I run it?
 This was built on OCaml version 5.1.1. It uses dune, ocamllex and ocamlyacc, so make sure you have those if you don't for some reason. If you do, in the main directory you can put your program (in place of program.pl) and run:
 ```
 dune build
-dune exec epilog --profile release [your program name]
+dune exec epilog [your program name]
 ```
-For the example program.pl provided, the exec command is `dune exec epilog --profile release program.pl`.
-The `--profile release` flag is needed for Dune to stop screaming about unused functions for now.
-~~It should print the AST to your terminal/specified output stream.~~
-~~You can check if two terms are unifiable or not by writing them in program.pl in two consecutive lines as Prolog facts. These are, of course, more often than not, *incorrect Prolog programs*, but they are still *correctly parseable* for Epilog's purposes.~~
-Given a Prolog program, Epilog will parse it, print it out and then create a monadic calculation (selecting clauses), which is then run and printed out. The output should look like:
+For the example program.pl provided, the exec command is `dune exec epilog program.pl`.
+~~The `--profile release` flag is needed for Dune to stop screaming about unused functions for now.~~
+Once the program is loaded, it can be queried in an identical fashion to SWI-Prolog.
+Example query and response could look like:
 ```
-select_clause test
-Original program:
-[facts and rules from a given Prolog program]
-
-Selected clauses:
-[identical output as above]
+?- perm(cons(1, cons(2, cons(3, nil))), X).
+X = cons(1, cons(2, cons(3, nil)))
+;
+X = cons(1, cons(3, cons(2, nil)))
 ```
-The two outputs being identical shows that the `select_clause` function correctly chooses every possible clause.
-The project diary contains code for testing the refreshing function.
+To exit Epilog, use `Ctrl+C`.
 ______
 
 If you're interested in seeing how this project came about, you can view the Project Diary or the commit history.

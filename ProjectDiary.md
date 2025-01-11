@@ -70,3 +70,8 @@ let program = Parser.parse_file fname in
         refreshed;
 ```
 One can replace with it the code inside the `try` block in the main function if one wishes to test the refreshing and fresh variable name generation.
+
+Implemented substitution recovery, which means Epilog now can output the result of a successful computation.
+Implemented a REPL with an interactive environment. Epilog now takes queries from standard input when run.
+Fixed a problem with dereferencing (symbols weren't dereferenced properly) that was affecting the goal resolution process.
+**Epilog is now a working Prolog interpreter**, though with somewhat dire functionality. It recognizes no syntactic sugars, the cut or arithmetic. This is, of course, room for great improvement, on which I will start working shortly. I guess I could call it a *v1.0*, though.
