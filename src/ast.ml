@@ -5,7 +5,7 @@ type position =
 
 type 'a node =
   { pos  : position
-  ; mutable data : 'a
+  ; data : 'a
   }
 
 type var    = string

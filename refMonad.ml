@@ -12,8 +12,9 @@ module RefMonad (Value : sig type t end)  (Key : Map.OrderedType) : sig
   val run : 'a t -> 'a Seq.t
 end with type key_ref = Key.t = struct
   module KeyMap = Map.Make(Key)
-
-  type 'a t = Value.t KeyMap.t -> ('a *  Value.t KeyMap.t) Seq.t
+  
+  type state = Value.t KeyMap.t
+  type 'a t = state -> ('a * state) Seq.t
   type key_ref = Key.t
 
   let return x = fun st -> Seq.cons (x, st) Seq.empty
