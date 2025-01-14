@@ -46,7 +46,7 @@ run test |> List.of_seq;;
 ```
 The last line should output `[ Some 20; Some 10 ]`.
 
-## Day 22
+## Day 21
 With the backtracking monad in place, implemented some functions useful for Prolog interpretation: nondeterministic clause selection, replacing variable names with fresh ones. Modified unification to utilize monadic `fail`. 
 Removed the following:
 - Mutable `data` field in `'a node` \[`ast.ml`\], a relic of past attempts of implementing mutability
@@ -75,3 +75,6 @@ Implemented substitution recovery, which means Epilog now can output the result 
 Implemented a REPL with an interactive environment. Epilog now takes queries from standard input when run.
 Fixed a problem with dereferencing (symbols weren't dereferenced properly) that was affecting the goal resolution process.
 **Epilog is now a working Prolog interpreter**, though with somewhat dire functionality. It recognizes no syntactic sugars, the cut or arithmetic. This is, of course, room for great improvement, on which I will start working shortly. I guess I could call it a *v1.0*, though.
+
+## Day 25
+Implemented arithmetic operations and the `is` predicate correct enough to program a working list length predicate. Next up are probably boolean operators or lists.
