@@ -47,6 +47,29 @@ let rec contains_var x t =
     if acc' then return true else contains_var x t) (return false) (List.map (fun x -> x.data) ts)
   | _ -> return false
 
+let sym_map = 
+  [ "+", ( + )
+  ; "-", ( - )
+  ; "*", ( * )
+  ; "/", ( / ) ]
+  |> List.to_seq |> Hashtbl.of_seq
+
+let rec eval_sym fsym t1 t2 =
+  let* x = deref t1 in
+  let* y = deref t2 in
+  match x, y with
+  | Num n, Num m -> 
+    (match Hashtbl.find_opt sym_map fsym with
+    | Some f -> return (Num (f n m))
+    | None -> fail)
+  | Sym (f', [t1'; t2']), t -> 
+    let* n = eval_sym f'.data t1'.data t2'.data in
+    eval_sym fsym n t
+  | t, Sym (f', [t1'; t2'])->
+    let* n = eval_sym f'.data t1'.data t2'.data in
+    eval_sym fsym t n
+  | _, _ -> fail
+
 let rec unify t1 t2 =
   let* t1' = deref t1 in
   let* t2' = deref t2 in
@@ -96,11 +119,26 @@ let refresh_clause c =
 let rec solve gs prog =
   match gs with
   | [] -> return ()
-  | g :: gs ->
-    let* c = select_clause prog in
-    let (h, b) = refresh_clause c in
-    let* () = unify h.data g.data in
-    solve (b @ gs) prog
+  | g :: gs -> begin
+    match g.data with
+    | Sym (ff, [t1; t2]) when ff.data = "is" ->
+      let* y = deref t2.data in begin
+      match y with
+      | Sym (f, [t1'; t2']) ->
+        let* n = eval_sym f.data t1'.data t2'.data in
+        let* () = unify t1.data n in
+        solve gs prog
+      | Num _ ->
+        let* () = unify t1.data t2.data in
+        solve gs prog
+      | _ -> fail
+      end
+    | _ ->
+      let* c = select_clause prog in
+      let (h, b) = refresh_clause c in
+      let* () = unify h.data g.data in
+      solve (b @ gs) prog
+    end
 
 let get_query_vars ts =
   let rec get_vars acc t =
@@ -179,9 +217,20 @@ let () =
   let open Printf in
   match Sys.argv with
   | [|_; fname |] -> begin
-    try
+    try (*begin
+      let rec format_term t = format_term_data t.data
+      and format_term_data t =
+        match t with
+        | Var x -> x
+        | Num n -> string_of_int n
+        | Atom f -> f.data
+        | Sym (f, ts) -> sprintf "%s(%s)" f.data (String.concat ", " (List.map format_term ts))
+      in*)
       let program = Parser.parse_file fname in
-      repl program
+      (*match (List.hd program).data with
+      | Fact t -> Printf.printf "%s" (format_term t)
+      | _ -> Printf.printf "Wrong input"*)
+      repl program (*end*)
     with
     | Failure s -> printf "%s" s
     | Errors.Cannot_open_file { fname; message } -> 
