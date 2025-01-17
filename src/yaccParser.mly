@@ -1,9 +1,12 @@
 %token<string> VAR SYM
 %token<int> NUM
-%token BR_OPN BR_CLS
+%token BR_OPN BR_CLS SQR_OPN SQR_CLS BAR
 %token ASTERISK COMMA DOT MINUS PLUS SLASH
+%token EQ LT GT
 %token COLON_MINUS IS
 %token EOF
+
+%nonassoc EQ LT GT
 
 %type<Ast.program> program
 %start program
@@ -27,9 +30,20 @@ let make data =
   ; data = data
   }
 
+let make_list xs ys =
+  (List.fold_right (fun x acc ->
+    make (Sym(make "#cons", [x; acc]))) xs ys)
+
+let make_nil xs = make_list xs (make (Atom(make "#nil")))
 %}
 
 %%
+list
+: SQR_OPN SQR_CLS { make (Atom(make "#nil")) }
+//| SQR_OPN term SQR_CLS { make (Sym(make "#cons", [ $2; make (Atom(make "nil")) ])) }
+| SQR_OPN term_list BAR term SQR_CLS { make_list $2 $4 }
+| SQR_OPN term_list SQR_CLS { make_nil $2 }
+;
 
 is_sym
 : IS { make "is" }
@@ -45,6 +59,12 @@ mult_sym
 | SLASH    { make "/" }
 ;
 
+comp_sym
+: EQ { make "=" }
+| LT { make "<" }
+| GT { make ">" }
+;
+
 symbol
 : SYM { make $1 }
 ;
@@ -53,6 +73,7 @@ symbol
 
 term
 : term_add is_sym term_add { make (Sym($2, [ $1; $3 ])) }
+| list { $1 }
 | term_add { $1 }
 ;
 
@@ -68,6 +89,11 @@ term_mult
 
 term_neg
 : add_sym term_neg { make (Sym($1, [ $2 ])) }
+| term_comp { $1 }
+;
+
+term_comp
+: term_simple comp_sym term_simple { make (Sym($2, [ $1; $3 ])) }
 | term_simple { $1 }
 ;
 

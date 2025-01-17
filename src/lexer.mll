@@ -17,6 +17,9 @@ let sym_map =
   ; "/",  SLASH
   ; ":-", COLON_MINUS
   ; "is", IS
+  ; "=",  EQ
+  ; "<",  LT
+  ; ">",  GT
   ] |> List.to_seq |> Hashtbl.of_seq
 
 let tokenize_sym str =
@@ -45,6 +48,9 @@ rule token = parse
   | '\n' { Lexing.new_line lexbuf; token lexbuf }
   | "/*" { block_comment lexbuf;   token lexbuf }
   | '%'  { skip_line lexbuf;       token lexbuf }
+  | '['  { YaccParser.SQR_OPN }
+  | ']'  { YaccParser.SQR_CLS }
+  | '|'  { YaccParser.BAR }
   | '('  { YaccParser.BR_OPN    }
   | ')'  { YaccParser.BR_CLS    }
   | sym_char+           as x { tokenize_sym x   }
