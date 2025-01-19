@@ -78,3 +78,10 @@ Fixed a problem with dereferencing (symbols weren't dereferenced properly) that 
 
 ## Day 25
 Implemented arithmetic operations and the `is` predicate correct enough to program a working list length predicate. Next up are probably boolean operators or lists.
+
+## Day 27
+Implemented list syntax: `[X, Y, Z]`, `[X|Xs]`, `[X, Y|Zs]` are now all supported by Epilog. Contents of `program.pl` can now be rewritten using regular list syntax and are properly evaluated by Epilog. What remains is printing - when using list notation, results are displayed using `#cons` and `#nil`, signed with a hash not to prevent the user from defining `cons` and `nil` symbols of their own. The display is, of course, to be fixed.
+
+In the meantime I moved on to implementing the cut. This required an overhaul of the backtracking monad and is done on the branch `cut`, a few commits ahead of `main`. When (if) the implementation is correct, the branches will be merged. Further updates of README and this diary will be on the branch `cut` for now, except for a print fix on `main`.
+
+Fixed printing lists.

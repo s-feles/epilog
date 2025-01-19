@@ -172,8 +172,23 @@ let print_subst subst =
     match t with
     | Var x -> x
     | Num n -> string_of_int n
+    | Atom f when f.data = "#nil" -> "[]"
     | Atom f -> f.data
-    | Sym (f, ts) -> sprintf "%s(%s)" f.data (String.concat ", " (List.map format_term ts))
+    | Sym (f, _) when f.data = "#cons" -> format_list t
+    | Sym (f, ts) -> 
+      List.map format_term ts
+      |> String.concat ", "
+      |> sprintf "%s(%s)" f.data
+  and format_list t =
+    let rec aux t acc =
+      match t with
+      | Atom f when f.data = "#nil" -> acc
+      | Sym (f, [t1; t2]) when f.data = "#cons" -> aux t2.data (t1.data :: acc)
+      | _ -> assert false
+    in let ts = aux t [] |> List.rev in
+    List.map format_term_data ts
+    |> String.concat ", "
+    |> sprintf "[%s]"
   in match subst with
   | [] -> print_endline "true"
   | _ -> 
@@ -217,19 +232,9 @@ let () =
   let open Printf in
   match Sys.argv with
   | [|_; fname |] -> begin
-    try (*begin
-      let rec format_term t = format_term_data t.data
-      and format_term_data t =
-        match t with
-        | Var x -> x
-        | Num n -> string_of_int n
-        | Atom f -> f.data
-        | Sym (f, ts) -> sprintf "%s(%s)" f.data (String.concat ", " (List.map format_term ts))
-      in*)
+    try 
+      printf "Epilog v1.0.1 | Łukasz Janicki UWr\n";
       let program = Parser.parse_file fname in
-      (*match (List.hd program).data with
-      | Fact t -> Printf.printf "%s" (format_term t)
-      | _ -> Printf.printf "Wrong input"*)
       repl program (*end*)
     with
     | Failure s -> printf "%s" s
