@@ -54,6 +54,11 @@ let sym_map =
   ; "/", ( / ) ]
   |> List.to_seq |> Hashtbl.of_seq
 
+let comp_map =
+  [ "<", ( < )
+  ; ">", ( > ) ]
+  |> List.to_seq |> Hashtbl.of_seq
+
 let rec eval_sym fsym t1 t2 =
   let* x = deref t1 in
   let* y = deref t2 in
@@ -69,6 +74,21 @@ let rec eval_sym fsym t1 t2 =
     let* n = eval_sym f'.data t1'.data t2'.data in
     eval_sym fsym t n
   | _, _ -> fail
+
+  let rec eval_comp fsym t1 t2 =
+    let* x = deref t1 in
+    let* y = deref t2 in
+    match x, y with
+    | Num n, Num m -> 
+      let c = Hashtbl.find comp_map fsym in
+      if c n m then return (Num 1) else return (Num 0)
+    | Sym (f', [t1'; t2']), t -> 
+      let* n = eval_sym f'.data t1'.data t2'.data in
+      eval_comp fsym n t
+    | t, Sym (f', [t1'; t2'])->
+      let* n = eval_sym f'.data t1'.data t2'.data in
+      eval_comp fsym t n
+    | _, _ -> fail
 
 let rec unify t1 t2 =
   let* t1' = deref t1 in
@@ -105,12 +125,13 @@ let rec select_clause prog =
     let* b = flip in
     if b then return c else select_clause cs
 
-let refresh_clause c =
+let refresh_clause c m =
   let name = fresh_var () in
   let rec refresh t =
     match t.data with
     | Var x -> { t with data = Var (name ^ x) }
     | Sym (f, ts) -> { t with data = Sym (f, List.map refresh ts) }
+    | EmptyCut -> { t with data = Cut m }
     | _ -> t
   in match c.data with
   | Fact t -> (refresh t, [])
@@ -121,6 +142,9 @@ let rec solve gs prog =
   | [] -> return ()
   | g :: gs -> begin
     match g.data with
+    | Cut m ->
+      let* () = cut_to m in
+      solve gs prog
     | Sym (ff, [t1; t2]) when ff.data = "is" ->
       let* y = deref t2.data in begin
       match y with
@@ -133,9 +157,20 @@ let rec solve gs prog =
         solve gs prog
       | _ -> fail
       end
+    | Sym (ff, [t1; t2]) when Hashtbl.mem comp_map ff.data ->
+      let* b = eval_comp ff.data t1.data t2.data in begin
+        match b with
+        | Num 1 -> let* () = return () in solve gs prog
+        | _ -> fail
+      end
+    | Sym (ff, [t1; t2]) when ff.data = "#eq" ->
+      let* () = unify t1.data t2.data in
+      solve gs prog
+    (*| Atom f when f.data = "fail" -> fail*)
     | _ ->
+      let* m = mark_cut () in
       let* c = select_clause prog in
-      let (h, b) = refresh_clause c in
+      let (h, b) = refresh_clause c m in
       let* () = unify h.data g.data in
       solve (b @ gs) prog
     end
@@ -176,6 +211,7 @@ let print_subst subst =
     | Atom f -> f.data
     | Sym (f, _) when f.data = "#cons" -> format_list t
     | Sym (f, ts) -> sprintf "%s(%s)" f.data (String.concat ", " (List.map format_term ts))
+    | _ -> ""
     and format_list t =
       let rec aux t acc =
         match t with

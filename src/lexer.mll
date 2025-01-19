@@ -20,6 +20,7 @@ let sym_map =
   ; "=",  EQ
   ; "<",  LT
   ; ">",  GT
+  ; "!",  CUT
   ] |> List.to_seq |> Hashtbl.of_seq
 
 let tokenize_sym str =
@@ -37,7 +38,7 @@ let tokenize_num lexbuf str =
 let whitespace = ['\011'-'\r' '\t' ' ']
 let sym_char =
   [';' ',' '=' '<' '>' '|' '&' '$' '#' '?'
-   '!' '@' ':' '^' '.' '+' '-' '~' '*' '/' ]
+   '@' ':' '^' '.' '+' '-' '~' '*' '/' ]
 let var_start = ['A'-'Z' '_']
 let lower     = ['a'-'z']
 let digit     = ['0'-'9']
@@ -53,6 +54,7 @@ rule token = parse
   | '|'  { YaccParser.BAR }
   | '('  { YaccParser.BR_OPN    }
   | ')'  { YaccParser.BR_CLS    }
+  | '!'  { YaccParser.CUT }
   | sym_char+           as x { tokenize_sym x   }
   | var_start var_char* as x { YaccParser.VAR x }
   | lower     var_char* as x { tokenize_sym x   }

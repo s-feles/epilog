@@ -17,6 +17,8 @@ and term_data =
   | Num  of int
   | Atom of symbol
   | Sym  of symbol * term list
+  | EmptyCut
+  | Cut of Bt.mark
 
 type clause = clause_data node
 and clause_data =

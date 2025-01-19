@@ -1,7 +1,7 @@
 %token<string> VAR SYM
 %token<int> NUM
 %token BR_OPN BR_CLS SQR_OPN SQR_CLS BAR
-%token ASTERISK COMMA DOT MINUS PLUS SLASH
+%token CUT ASTERISK COMMA DOT MINUS PLUS SLASH
 %token EQ LT GT
 %token COLON_MINUS IS
 %token EOF
@@ -38,6 +38,10 @@ let make_nil xs = make_list xs (make (Atom(make "#nil")))
 %}
 
 %%
+cut
+: CUT { EmptyCut }
+;
+
 list
 : SQR_OPN SQR_CLS { make (Atom(make "#nil")) }
 //| SQR_OPN term SQR_CLS { make (Sym(make "#cons", [ $2; make (Atom(make "nil")) ])) }
@@ -60,7 +64,7 @@ mult_sym
 ;
 
 comp_sym
-: EQ { make "=" }
+: EQ { make "#eq" }
 | LT { make "<" }
 | GT { make ">" }
 ;
@@ -75,6 +79,7 @@ term
 : term_add is_sym term_add { make (Sym($2, [ $1; $3 ])) }
 | list { $1 }
 | term_add { $1 }
+| cut { make $1 }
 ;
 
 term_add

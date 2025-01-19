@@ -3,4 +3,4 @@
  (modes byte exe)
  (public_name epilog)
  (libraries unix epiLib)
- (modules epilog refMonad bt))
+ (modules epilog refMonad))
