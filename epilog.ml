@@ -172,8 +172,20 @@ let print_subst subst =
     match t with
     | Var x -> x
     | Num n -> string_of_int n
+    | Atom f when f.data = "#nil" -> "[]"
     | Atom f -> f.data
+    | Sym (f, _) when f.data = "#cons" -> format_list t
     | Sym (f, ts) -> sprintf "%s(%s)" f.data (String.concat ", " (List.map format_term ts))
+    and format_list t =
+      let rec aux t acc =
+        match t with
+        | Atom f when f.data = "#nil" -> acc
+        | Sym (f, [t1; t2]) when f.data = "#cons" -> aux t2.data (t1.data :: acc)
+        | _ -> assert false
+      in let ts = aux t [] |> List.rev in
+      List.map format_term_data ts
+      |> String.concat ", "
+      |> sprintf "[%s]"
   in match subst with
   | [] -> print_endline "true"
   | _ -> 
