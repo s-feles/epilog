@@ -1,7 +1,7 @@
 open Ast
-open RefMonad
+open Bt
 
-module M = RefMonad (struct type t = term_data end) (String)
+module M = BT (struct type t = term_data end) (String)
 open M
 let (let*) = bind
 
