@@ -217,20 +217,9 @@ let () =
   let open Printf in
   match Sys.argv with
   | [|_; fname |] -> begin
-    try (*begin
-      let rec format_term t = format_term_data t.data
-      and format_term_data t =
-        match t with
-        | Var x -> x
-        | Num n -> string_of_int n
-        | Atom f -> f.data
-        | Sym (f, ts) -> sprintf "%s(%s)" f.data (String.concat ", " (List.map format_term ts))
-      in*)
+    try 
       let program = Parser.parse_file fname in
-      (*match (List.hd program).data with
-      | Fact t -> Printf.printf "%s" (format_term t)
-      | _ -> Printf.printf "Wrong input"*)
-      repl program (*end*)
+      repl program
     with
     | Failure s -> printf "%s" s
     | Errors.Cannot_open_file { fname; message } -> 

@@ -78,3 +78,50 @@ Fixed a problem with dereferencing (symbols weren't dereferenced properly) that 
 
 ## Day 25
 Implemented arithmetic operations and the `is` predicate correct enough to program a working list length predicate. Next up are probably boolean operators or lists.
+
+## Day 27
+Implemented list syntax: `[X, Y, Z]`, `[X|Xs]`, `[X, Y|Zs]` are now all supported by Epilog. Contents of `program.pl` can now be rewritten using regular list syntax and are properly evaluated by Epilog. What remains is printing - when using list notation, results are displayed using `#cons` and `#nil`, signed with a hash not to prevent the user from defining `cons` and `nil` symbols of their own. The display is, of course, to be fixed.
+
+In the meantime I moved on to implementing the cut. This required an overhaul of the backtracking monad and is done on the branch `cut`, a few commits ahead of `main`. When (if) the implementation is correct, the branches will be merged. Further updates of README and this diary will be on the branch `cut` for now, except for a print fix on `main`.
+
+Fixed printing lists.
+
+Implemented the new monad `BT` first as a backtracking monad with cut functionality. It is a lazy list of delayed computations whose elements (nodes) can either be:
+- `Nil`, signifying the list is empty
+- `NilCut`, signifying the list is empty, but holding a marker that passes down information about an ongoing cut when appending two lists
+- `Cons` holding an element and the rest of the list.
+An element of the list is either a cut marker (`Mark of mark`) or a lazy computation (`Comp of (unit -> 'a)`). 
+
+The function `mark_cut` places a freshly generated marker under a computation that returns the marker itself. Generation of fresh markers is obscured from the user by the module interface, as is the marker type.
+
+The function `cut_to` takes a marker and returns a unit computation followed by a `NilCut`. Since it is monadic, it must be bound; since `bind` calls `concat_map`, the `NilCut` will be appended to another list and the cut is performed: computations are dropped from the stack until a matching marker is encountered.
+
+Initial simple tests showed correct behaviour, but requiring careful marker placement. It shouldn't be particularly surprising that the following fragments:
+```ocaml
+    let* m = mark_cut () in
+    let* b1 = flip in
+    let* b2 = flip in
+    [...]
+```
+_______
+```ocaml
+    let* b1 = flip in
+    let* m = mark_cut () in
+    let* b2 = flip in
+    [...]
+```
+_______
+```ocaml
+    let* b1 = flip in
+    let* b2 = flip in
+    let* m = mark_cut () in
+    [...]
+```
+will produce much varying results after calling `cut_to m`.
+
+## Day 28
+Expanded the backtracking monad to include state. Changed the lazy list type from `'a t` to `'a bt`; the monadic type is now `type 'a t = state -> ('a * state) bt`, resembling the `RefMonad` type `state -> ('a * state) Seq.t` with the described additional functionality.
+
+Integrated the `BT` monad into Epilog; the previous functionalities are all retained and the interpreter works as intended.
+
+Soon the cut will be implemented into the lexer, parser and interpreter itself.
