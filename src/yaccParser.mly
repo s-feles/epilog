@@ -64,7 +64,7 @@ mult_sym
 ;
 
 comp_sym
-: EQ { make "#eq" }
+: EQ { make "eq" }
 | LT { make "<" }
 | GT { make ">" }
 ;

@@ -5,6 +5,12 @@ module M = BT (struct type t = term_data end) (String)
 open M
 let (let*) = bind
 
+module Arity = struct
+  type t = string * int
+  let compare t1 t2 = String.compare (fst t1) (fst t2)
+end
+module ArityMap = Map.Make(Arity)
+
 let fresh = ref 0
 
 let fresh_var () =
@@ -81,7 +87,7 @@ let rec eval_sym fsym t1 t2 =
     match x, y with
     | Num n, Num m -> 
       let c = Hashtbl.find comp_map fsym in
-      if c n m then return (Num 1) else return (Num 0)
+      return (c n m)
     | Sym (f', [t1'; t2']), t -> 
       let* n = eval_sym f'.data t1'.data t2'.data in
       eval_comp fsym n t
@@ -117,6 +123,47 @@ let rec unify t1 t2 =
   | Num n1, Num n2 ->
     if n1 = n2 then return () else fail
   | _ -> fail
+
+let aritymap prog =
+  let rec aux prog map =
+    match prog with
+    | [] -> map
+    | c :: cs -> begin
+      match c.data with
+      | Fact t -> begin
+        match t.data with
+        | Atom f -> begin
+          match ArityMap.find_opt (f.data, 0) map with
+          | Some xs -> aux cs (ArityMap.add (f.data, 0) (xs @ [c]) map)
+          | None -> aux cs (ArityMap.add (f.data, 0) [c] map)
+          end
+        | Sym (f, ts) -> 
+          let sym = f.data in
+          let arity = List.length ts in begin
+            match ArityMap.find_opt (sym, arity) map with
+            | Some xs -> aux cs (ArityMap.add (sym, arity) (xs @ [c]) map)
+            | None -> aux cs (ArityMap.add (sym, arity) [c] map)
+            end
+        | _ -> aux cs map
+        end
+      | Rule (h, _) -> begin
+        match h.data with
+        | Atom f -> begin
+          match ArityMap.find_opt (f.data, 0) map with
+          | Some xs -> aux cs (ArityMap.add (f.data, 0) (xs @ [c]) map)
+          | None -> aux cs (ArityMap.add (f.data, 0) [c] map)
+          end
+        | Sym (f, ts) ->
+          let sym = f.data in
+          let arity = List.length ts in begin
+            match ArityMap.find_opt (sym, arity) map with
+            | Some xs -> aux cs (ArityMap.add (sym, arity) (xs @ [c]) map)
+            | None -> aux cs (ArityMap.add (sym, arity) [c] map)
+            end
+        | _ -> aux cs map
+        end
+      end
+  in aux prog ArityMap.empty
 
 let rec select_clause prog = 
   match prog with
@@ -158,21 +205,31 @@ let rec solve gs prog =
       | _ -> fail
       end
     | Sym (ff, [t1; t2]) when Hashtbl.mem comp_map ff.data ->
-      let* b = eval_comp ff.data t1.data t2.data in begin
-        match b with
-        | Num 1 -> let* () = return () in solve gs prog
-        | _ -> fail
+      let* b = eval_comp ff.data t1.data t2.data in 
+      if b then solve gs prog else fail
+    | Sym (f, ts) ->
+      let sym = f.data in
+      let arity = List.length ts in begin
+        match ArityMap.find_opt (sym, arity) prog with
+        | Some cs ->
+          let* m = mark_cut () in
+          let* c = select_clause cs in
+          let (h, b) = refresh_clause c m in
+          let* () = unify h.data g.data in
+          solve (b @ gs) prog
+        | None -> fail
+        end
+    | Atom f -> begin
+      match ArityMap.find_opt (f.data, 0) prog with
+      | Some cs ->
+        let* m = mark_cut () in
+        let* c = select_clause cs in
+        let (h, b) = refresh_clause c m in
+        let* () = unify h.data g.data in
+        solve (b @ gs) prog
+      | None -> fail
       end
-    | Sym (ff, [t1; t2]) when ff.data = "#eq" ->
-      let* () = unify t1.data t2.data in
-      solve gs prog
-    (*| Atom f when f.data = "fail" -> fail*)
-    | _ ->
-      let* m = mark_cut () in
-      let* c = select_clause prog in
-      let (h, b) = refresh_clause c m in
-      let* () = unify h.data g.data in
-      solve (b @ gs) prog
+    | _ -> fail
     end
 
 let get_query_vars ts =
@@ -267,7 +324,10 @@ let () =
   | [|_; fname |] -> begin
     try 
       let program = Parser.parse_file fname in
-      repl program
+      let predef = Parser.parse_file "predef.pl" in
+      let f _ v1 v2 = Some (v1 @ v2) in
+      let m = ArityMap.union f (aritymap program) (aritymap predef) in
+      repl m
     with
     | Failure s -> printf "%s" s
     | Errors.Cannot_open_file { fname; message } -> 

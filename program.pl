@@ -1,4 +1,3 @@
-eq(X, X).
 select(H, cons(H, T), T).
 select(X, cons(H, T), cons(H, R)) :- select(X, T, R).
 
