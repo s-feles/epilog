@@ -1,3 +1,6 @@
+(* This is legacy code now. The current state-backtracking monad used by Epilog is bt.ml,
+ * located in the src folder.
+ *)
 module RefMonad (Value : sig type t end)  (Key : Map.OrderedType) : sig
   type 'a t
   type key_ref

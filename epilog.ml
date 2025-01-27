@@ -136,14 +136,14 @@ let aritymap prog =
         match t.data with
         | Atom f -> begin
           match ArityMap.find_opt (f.data, 0) map with
-          | Some xs -> aux cs (ArityMap.add (f.data, 0) (xs @ [c]) map)
+          | Some xs -> aux cs (ArityMap.add (f.data, 0) (c :: xs) map)
           | None -> aux cs (ArityMap.add (f.data, 0) [c] map)
           end
         | Sym (f, ts) -> 
           let sym = f.data in
           let arity = List.length ts in begin
             match ArityMap.find_opt (sym, arity) map with
-            | Some xs -> aux cs (ArityMap.add (sym, arity) (xs @ [c]) map)
+            | Some xs -> aux cs (ArityMap.add (sym, arity) (c :: xs) map)
             | None -> aux cs (ArityMap.add (sym, arity) [c] map)
             end
         | _ -> aux cs map
@@ -152,20 +152,20 @@ let aritymap prog =
         match h.data with
         | Atom f -> begin
           match ArityMap.find_opt (f.data, 0) map with
-          | Some xs -> aux cs (ArityMap.add (f.data, 0) (xs @ [c]) map)
+          | Some xs -> aux cs (ArityMap.add (f.data, 0) (c :: xs) map)
           | None -> aux cs (ArityMap.add (f.data, 0) [c] map)
           end
         | Sym (f, ts) ->
           let sym = f.data in
           let arity = List.length ts in begin
             match ArityMap.find_opt (sym, arity) map with
-            | Some xs -> aux cs (ArityMap.add (sym, arity) (xs @ [c]) map)
+            | Some xs -> aux cs (ArityMap.add (sym, arity) (c :: xs) map)
             | None -> aux cs (ArityMap.add (sym, arity) [c] map)
             end
         | _ -> aux cs map
         end
       end
-  in aux prog ArityMap.empty
+  in aux prog ArityMap.empty |> ArityMap.map List.rev
 
 let rec select_clause prog = 
   match prog with
@@ -329,6 +329,7 @@ let () =
       let predef = Parser.parse_file "predef.pl" in
       let f _ _ v2 = Some v2 in
       let m = ArityMap.union f (aritymap program) (aritymap predef) in
+      printf "Epilog v1.1.0 | Łukasz Janicki UWr\n";
       repl m
     with
     | Failure s -> printf "%s" s
