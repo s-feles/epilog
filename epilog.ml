@@ -11,6 +11,8 @@ module Arity = struct
 end
 module ArityMap = Map.Make(Arity)
 
+exception Not_sym
+
 let fresh = ref 0
 
 let fresh_var () =
@@ -184,10 +186,43 @@ let refresh_clause c m =
   | Fact t -> (refresh t, [])
   | Rule (h, b) -> (refresh h, List.map refresh b)
 
+let rec format_term t = format_term_data t.data
+and format_term_data t =
+  match t with
+  | Var x -> x
+  | Num n -> string_of_int n
+  | Atom f when f.data = "#nil" -> "[]"
+  | Atom f -> f.data
+  | Sym (f, _) when f.data = "#cons" -> format_list t
+  | Sym (f, ts) -> Printf.sprintf "Sym(%s(%s))" f.data (String.concat ", " (List.map format_term ts))
+  | _ -> ""
+  and format_list t =
+    let rec aux t acc =
+      match t with
+      | Atom f when f.data = "#nil" -> acc
+      | Sym (f, [t1; t2]) when f.data = "#cons" -> aux t2.data (t1.data :: acc)
+      | _ -> assert false
+    in let ts = aux t [] |> List.rev in
+    List.map format_term_data ts
+    |> String.concat ", "
+    |> Printf.sprintf "[%s]"
+
+let symarity t =
+  let* t = deref t.data in
+  match t with
+  | Atom f -> return (f.data, 0)
+  | Sym (f, ts) -> return (f.data, List.length ts)
+  | Cut _ -> return ("#cut", -1)
+  | _ -> raise Not_sym
+
 let rec solve gs prog =
   match gs with
   | [] -> return ()
-  | g :: gs -> begin
+  | g :: gs -> 
+    let* k = symarity g in
+    let clauses = (match ArityMap.find_opt k prog with
+    | Some xs -> xs
+    | None -> []) in begin
     match g.data with
     | Cut m ->
       let* () = cut_to m in
@@ -207,29 +242,12 @@ let rec solve gs prog =
     | Sym (ff, [t1; t2]) when Hashtbl.mem comp_map ff.data ->
       let* b = eval_comp ff.data t1.data t2.data in 
       if b then solve gs prog else fail
-    | Sym (f, ts) ->
-      let sym = f.data in
-      let arity = List.length ts in begin
-        match ArityMap.find_opt (sym, arity) prog with
-        | Some cs ->
-          let* m = mark_cut () in
-          let* c = select_clause cs in
-          let (h, b) = refresh_clause c m in
-          let* () = unify h.data g.data in
-          solve (b @ gs) prog
-        | None -> fail
-        end
-    | Atom f -> begin
-      match ArityMap.find_opt (f.data, 0) prog with
-      | Some cs ->
-        let* m = mark_cut () in
-        let* c = select_clause cs in
-        let (h, b) = refresh_clause c m in
-        let* () = unify h.data g.data in
-        solve (b @ gs) prog
-      | None -> fail
-      end
-    | _ -> fail
+    | _ ->
+      let* m = mark_cut () in
+      let* c = select_clause clauses in
+      let (h, b) = refresh_clause c m in
+      let* () = unify h.data g.data in
+      solve (b @ gs) prog
     end
 
 let get_query_vars ts =
@@ -259,27 +277,7 @@ let get_subst vs =
 
 let print_subst subst =
   let open Printf in
-  let rec format_term t = format_term_data t.data
-  and format_term_data t =
-    match t with
-    | Var x -> x
-    | Num n -> string_of_int n
-    | Atom f when f.data = "#nil" -> "[]"
-    | Atom f -> f.data
-    | Sym (f, _) when f.data = "#cons" -> format_list t
-    | Sym (f, ts) -> sprintf "%s(%s)" f.data (String.concat ", " (List.map format_term ts))
-    | _ -> ""
-    and format_list t =
-      let rec aux t acc =
-        match t with
-        | Atom f when f.data = "#nil" -> acc
-        | Sym (f, [t1; t2]) when f.data = "#cons" -> aux t2.data (t1.data :: acc)
-        | _ -> assert false
-      in let ts = aux t [] |> List.rev in
-      List.map format_term_data ts
-      |> String.concat ", "
-      |> sprintf "[%s]"
-  in match subst with
+  match subst with
   | [] -> print_endline "true"
   | _ -> 
     subst
@@ -288,7 +286,7 @@ let print_subst subst =
     |> print_endline
 
 let rec repl prog =
-  print_string "?- ";
+  print_string "epi?- ";
   flush stdout;
   try
     let query = Parser.parse_query stdin in
@@ -309,14 +307,18 @@ let rec repl prog =
     in handle results; repl prog
   with
   | Errors.Parse_error (pos, reason) ->
-    Printf.eprintf "Error: Parsing error at position %d:%d: %s\n"
+    Printf.printf "Error: Parsing error at position %d:%d: %s\n"
     pos.Ast.start.pos_lnum
     (pos.Ast.start.pos_cnum - pos.Ast.start.pos_bol)
     (match reason with
     | EofInComment -> "EOF in comment"
     | InvalidNumber n -> Printf.sprintf "Invalid number: %s" n
     | InvalidChar c -> Printf.sprintf "Invalid character: %c" c
-    | UnexpectedToken tok -> Printf.sprintf "Invalid token: %s" tok)
+    | UnexpectedToken tok -> Printf.sprintf "Invalid token: %s" tok);
+    repl prog
+  | Not_sym -> 
+    Printf.printf "Error: Goal is not a symbol or atom\n";
+    repl prog
 
 let () = 
   let open Printf in
@@ -325,7 +327,7 @@ let () =
     try 
       let program = Parser.parse_file fname in
       let predef = Parser.parse_file "predef.pl" in
-      let f _ v1 v2 = Some (v1 @ v2) in
+      let f _ _ v2 = Some v2 in
       let m = ArityMap.union f (aritymap program) (aritymap predef) in
       repl m
     with
