@@ -125,3 +125,27 @@ Expanded the backtracking monad to include state. Changed the lazy list type fro
 Integrated the `BT` monad into Epilog; the previous functionalities are all retained and the interpreter works as intended.
 
 Soon the cut will be implemented into the lexer, parser and interpreter itself.
+
+# Day 36
+The projects seems to be coming to a close.
+The cut has been implemented and tested. It is correct by lack of counterexample so far.
+Implemented quick predicate base search by employing a map that binds a `(symbol, arity)` pair to a list of clauses that have potentially unifiable heads. This greatly reduces the clause selection time when the predicate base is large.
+
+Overall, Epilog supports:
+- Arithmetic and `is`
+- Boolean operators\*
+- Cut and negation as failure
+- Prolog list syntax
+- Checking goals for sensibility (will fail if a goal is not a symbol or atom)
+- Quick search of predicate base.
+
+\* - There are some cases to be considered with boolean operators.
+`equals(X, Y)` is an arithmetic equality symbol (in particular it is symmetric), which is a predefined predicate, though it doesn't support infix notation.
+`X is Y` works correctly unless negated.
+`X = Y` parses to `eq(X, Y)`, which is a predefined predicate checking for structural equality of both sides.
+`X < Y` and `X > Y` are comparison tests that can be places on the right hand side of a clause, but can produce unreliable results when called as goals (for example `not(X < Y)` always succeeds, regardless of what one puts in place of X and Y).
+`lt(X, Y)` and `gt(X, Y)` are predefined comparison clauses that produce reliable results when called as goals (e. g. `not(lt(1, 2))` fails).
+
+Epilog does not have garbage collection or Huet unification, both of which would have been good performance improvements, but I ended up not exploring these opportunities as of now.
+
+I think this is about it for me. Epilog v1.1. I learned a lot on the way. Maybe I will expand it in my free time, when I finally get some.
