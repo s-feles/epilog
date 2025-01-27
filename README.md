@@ -12,10 +12,21 @@ dune build
 dune exec epilog -- [your program name]
 ```
 For the example program.pl provided, the exec command is `dune exec epilog -- program.pl`.
+Alternatively you can install this interpreter as a dune package as follows:
+1. Clone or fork this repository.
+2. Run the following commands:
+```
+dune build
+dune install
+```
+3. You can now run the interpreter in the usual fashion:
+```
+epilog program.pl
+```
 Once the program is loaded, it can be queried in an identical fashion to SWI-Prolog.
 Example query and response could look like:
 ```
-?- perm([1, 2, 3], X).
+epi?- perm([1, 2, 3], X).
 X = [1, 2, 3]
 ;
 X = [1, 3, 2]
