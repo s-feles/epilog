@@ -96,7 +96,7 @@ let rec eval_sym fsym t1 t2 =
     | t, Sym (f', [t1'; t2'])->
       let* n = eval_sym f'.data t1'.data t2'.data in
       eval_comp fsym t n
-    | _, _ -> fail
+    | _, _ -> failwith "no nie dziala no"
 
 let rec unify t1 t2 =
   let* t1' = deref t1 in
@@ -295,15 +295,16 @@ let rec repl prog =
       let* () = solve query prog in
       let* subst = get_subst vars in
       return subst
-    in let results = run m |> List.of_seq in
-    let rec handle = function
-    | [] -> print_endline "false.\n"
-    | subst :: rest -> 
-      print_subst subst;
-      match input_line stdin with
-      | "." -> ()
-      | ";" -> handle rest
-      | _ -> print_endline "Invalid input\n"
+    in let results = run m in
+    let rec handle s =
+      match s () with
+      | Seq.Nil -> print_endline "false.\n"
+      | Seq.Cons (subst, rest) -> 
+        print_subst subst;
+        match input_line stdin with
+        | "." -> ()
+        | ";" -> handle rest
+        | _ -> print_endline "Invalid input\n"
     in handle results; repl prog
   with
   | Errors.Parse_error (pos, reason) ->
@@ -327,7 +328,7 @@ let () =
     try 
       let program = Parser.parse_file fname in
       let predef = Parser.parse_file "predef.pl" in
-      let f _ _ v2 = Some v2 in
+      let f _ v1 _ = Some v1 in
       let m = ArityMap.union f (aritymap program) (aritymap predef) in
       printf "Epilog v1.1.0 | Łukasz Janicki UWr\n";
       repl m
