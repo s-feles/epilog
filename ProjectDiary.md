@@ -85,3 +85,67 @@ Implemented list syntax: `[X, Y, Z]`, `[X|Xs]`, `[X, Y|Zs]` are now all supporte
 In the meantime I moved on to implementing the cut. This required an overhaul of the backtracking monad and is done on the branch `cut`, a few commits ahead of `main`. When (if) the implementation is correct, the branches will be merged. Further updates of README and this diary will be on the branch `cut` for now, except for a print fix on `main`.
 
 Fixed printing lists.
+
+Implemented the new monad `BT` first as a backtracking monad with cut functionality. It is a lazy list of delayed computations whose elements (nodes) can either be:
+- `Nil`, signifying the list is empty
+- `NilCut`, signifying the list is empty, but holding a marker that passes down information about an ongoing cut when appending two lists
+- `Cons` holding an element and the rest of the list.
+An element of the list is either a cut marker (`Mark of mark`) or a lazy computation (`Comp of (unit -> 'a)`). 
+
+The function `mark_cut` places a freshly generated marker under a computation that returns the marker itself. Generation of fresh markers is obscured from the user by the module interface, as is the marker type.
+
+The function `cut_to` takes a marker and returns a unit computation followed by a `NilCut`. Since it is monadic, it must be bound; since `bind` calls `concat_map`, the `NilCut` will be appended to another list and the cut is performed: computations are dropped from the stack until a matching marker is encountered.
+
+Initial simple tests showed correct behaviour, but requiring careful marker placement. It shouldn't be particularly surprising that the following fragments:
+```ocaml
+    let* m = mark_cut () in
+    let* b1 = flip in
+    let* b2 = flip in
+    [...]
+```
+_______
+```ocaml
+    let* b1 = flip in
+    let* m = mark_cut () in
+    let* b2 = flip in
+    [...]
+```
+_______
+```ocaml
+    let* b1 = flip in
+    let* b2 = flip in
+    let* m = mark_cut () in
+    [...]
+```
+will produce much varying results after calling `cut_to m`.
+
+## Day 28
+Expanded the backtracking monad to include state. Changed the lazy list type from `'a t` to `'a bt`; the monadic type is now `type 'a t = state -> ('a * state) bt`, resembling the `RefMonad` type `state -> ('a * state) Seq.t` with the described additional functionality.
+
+Integrated the `BT` monad into Epilog; the previous functionalities are all retained and the interpreter works as intended.
+
+Soon the cut will be implemented into the lexer, parser and interpreter itself.
+
+# Day 36
+The projects seems to be coming to a close.
+The cut has been implemented and tested. It is correct by lack of counterexample so far.
+Implemented quick predicate base search by employing a map that binds a `(symbol, arity)` pair to a list of clauses that have potentially unifiable heads. This greatly reduces the clause selection time when the predicate base is large.
+
+Overall, Epilog supports:
+- Arithmetic and `is`
+- Boolean operators\*
+- Cut and negation as failure
+- Prolog list syntax
+- Checking goals for sensibility (will fail if a goal is not a symbol or atom)
+- Quick search of predicate base.
+
+\* - There are some cases to be considered with boolean operators.
+`equals(X, Y)` is an arithmetic equality symbol (in particular it is symmetric), which is a predefined predicate, though it doesn't support infix notation.
+`X is Y` works correctly unless negated.
+`X = Y` parses to `eq(X, Y)`, which is a predefined predicate checking for structural equality of both sides.
+`X < Y` and `X > Y` are comparison tests that can be places on the right hand side of a clause, but can produce unreliable results when called as goals (for example `not(X < Y)` always succeeds, regardless of what one puts in place of X and Y).
+`lt(X, Y)` and `gt(X, Y)` are predefined comparison clauses that produce reliable results when called as goals (e. g. `not(lt(1, 2))` fails).
+
+Epilog does not have garbage collection or Huet unification, both of which would have been good performance improvements, but I ended up not exploring these opportunities as of now.
+
+I think this is about it for me. Epilog v1.1. I learned a lot on the way. Maybe I will expand it in my free time, when I finally get some.

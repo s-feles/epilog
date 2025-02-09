@@ -16,4 +16,6 @@
  (tags
   (topics "to describe" your project)))
 
+(generate_opam_files true)
+
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
