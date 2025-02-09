@@ -31,4 +31,4 @@ r(b).
 s(c).
 s(d).
 t(X, Y) :- r(X), !, s(Y), !.
-% Example query: perm(cons(1, cons(2, cons(3, nil))), X).
+% Example query: perm([1, 2, 3], X).

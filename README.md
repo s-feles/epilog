@@ -3,6 +3,7 @@ This somewhat pretentious title expresses a hope that I ultimately manage to tur
 
 ## What it does
 Reads a Prolog program from a file and opens an interactive environment in which the user can query the program, quite similarly to SWI-Prolog. Uses a backtracking monad with mutable state to perform unification and goal resolution.
+
 Currently Epilog does not recognize the unary negation `\+`, but has a predefined `not/1` predicate.
 
 ## How do I run it?
